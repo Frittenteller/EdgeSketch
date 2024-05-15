@@ -2,8 +2,26 @@ import Link from "next/link";
 
 import { CreatePost } from "~/app/_components/create-post";
 import { api } from "~/trpc/server";
+import { createClient } from 'edgedb';
 
 export default async function Home() {
+
+  type Post = {
+    id: string
+    title: string
+    content: string
+  }
+
+  const client = createClient();
+
+  const posts = await client.query<Post>(`\
+   select Post {
+     id,
+     title,
+     content
+  };`)
+
+
   const hello = await api.post.hello({ text: "from tRPC" });
 
   return (
@@ -20,8 +38,7 @@ export default async function Home() {
           >
             <h3 className="text-2xl font-bold">First Steps →</h3>
             <div className="text-lg">
-              Just the basics - Everything you need to know to set up your
-              database and authentication.
+              {posts[0]?.title}
             </div>
           </Link>
           <Link
