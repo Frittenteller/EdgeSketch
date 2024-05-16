@@ -4,6 +4,7 @@ import { type Message, useChat } from "ai/react";
 import { api } from "~/trpc/react";
 
 import { html } from "htm/react";
+import { useEffect, useState } from "react";
 
 export default function Chat() {
   const initMessage: Message = {
@@ -38,31 +39,35 @@ Also exclude the backticks
     initMessage,
     { content: "Ok, got it!", role: "assistant", id: "confirm" },
   ];
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    initialMessages,
-  });
 
-  const query = `\
+  const initialQuery = `\
 select Post {
     id,
     title,
     content
 };`;
+  const [query, setQuery] = useState(initialQuery);
 
   // EDGEDB PROMPT BUILDING
   const hello = api.post.getEdge.useQuery({ edgeQuery: query });
 
-  const prompt = `
+  const prompt = `This is the schema
+${hello.data?.schema as unknown as string}
 
-    This is the schema
-    ${hello.data?.schema as unknown as string}
+This is the query
+${query}
 
-    This is the query
-    ${query}
-
-    This is the data
-    ${JSON.stringify(hello.data?.res, null, 2)}
+This is the data
+${JSON.stringify(hello.data?.res, null, 2)}
 `;
+  const { messages, input, handleInputChange, handleSubmit, setInput } =
+    useChat({
+      initialMessages,
+      initialInput: prompt,
+    });
+  useEffect(() => {
+    setInput(prompt);
+  }, [prompt]);
   const data = hello.data?.res ?? [];
   window.html = html;
   window.data = data;
@@ -71,6 +76,10 @@ select Post {
     <div className="stretch mx-auto flex w-full max-w-md flex-col py-24">
       {/* <div>PROMPT</div> */}
       <div className="my-4 whitespace-pre bg-gray-200 font-mono">{prompt}</div>
+      <textarea
+        value={query}
+        onInput={(e) => setQuery(e.target.value)}
+      ></textarea>
       {/* <div className="whitespace-pre-wrap font-mono">
         <div className="my-4">
           <div className="font-bold">schema</div>
@@ -96,7 +105,6 @@ select Post {
         }
         return (
           <div key={m.id} className="whitespace-pre-wrap">
-            {idx}
             {m.role === "user" ? "User: " : "AI: "}
             {idx > 1 ? (
               <>
