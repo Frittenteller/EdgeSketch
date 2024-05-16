@@ -1,3 +1,5 @@
+import createClient from "edgedb";
+import { input } from "edgedb/dist/adapter.node";
 import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
@@ -6,6 +8,15 @@ let post = {
   id: 1,
   name: "Hello World",
 };
+
+const client = createClient();
+
+const posts = await client.query<any>(`\
+ select Post {
+   id,
+   title,
+   content
+};`)
 
 export const postRouter = createTRPCRouter({
   hello: publicProcedure
@@ -26,7 +37,9 @@ export const postRouter = createTRPCRouter({
       return post;
     }),
 
-  getLatest: publicProcedure.query(() => {
-    return post;
+  getEdge: publicProcedure.input(z.object({edgeQuery: z.string()})).query(async (args) => {
+    const res = await client.query(args.input.edgeQuery);
+    const schema = await client.query('DESCRIBE SCHEMA AS SDL;');
+    return {res, schema};
   }),
 });

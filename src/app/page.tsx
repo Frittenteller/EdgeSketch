@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreatePost } from "~/app/_components/create-post";
 import { api } from "~/trpc/server";
 import { createClient } from 'edgedb';
+import { runGemini } from "./_components/gemini";
 
 export default async function Home() {
 
@@ -21,9 +22,16 @@ export default async function Home() {
      content
   };`)
 
+  const query = `\
+  select Post {
+    id,
+    title,
+    content
+ };`
 
-  const hello = await api.post.hello({ text: "from tRPC" });
-
+  const hello = await api.post.hello({ text: query});
+  runGemini()
+  
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
       <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16 ">
@@ -38,6 +46,7 @@ export default async function Home() {
           >
             <h3 className="text-2xl font-bold">First Steps →</h3>
             <div className="text-lg">
+              
               {posts[0]?.title}
             </div>
           </Link>
