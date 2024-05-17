@@ -10,6 +10,11 @@ module default {
 
     type Comment {
         required post: Post;
+        required content: str;
+        required user: User;
+        required created_on: datetime {
+            default := std::datetime_current();
+        }
     }
 
     type User {

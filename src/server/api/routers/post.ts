@@ -42,4 +42,14 @@ export const postRouter = createTRPCRouter({
     const schema = await client.query('DESCRIBE SCHEMA AS SDL;');
     return {res, schema};
   }),
+
+  newPost: publicProcedure.input(z.object({title: z.string(), content: z.string(), userID: z.string()})).query(async (args) =>{
+    await client.execute(`
+      INSERT Post{
+        title := '${args.input.title}'
+        content := '${args.input.content}'
+        from_user := SELET User Filter .id = '${args.input.userID}'
+      };
+    `);
+  })
 });
