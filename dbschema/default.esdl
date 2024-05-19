@@ -26,9 +26,6 @@ module default {
 module Generator {
     type Page {
         required slug: str {constraint exclusive};
-        multi link queries: Query;
-    }
-    type Query {
-        required body: str;
+        multi queries: str;
     }
 }
