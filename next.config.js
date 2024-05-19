@@ -5,6 +5,26 @@
 await import("./src/env.js");
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          // Content-Security-Policy: frame-ancestors 'self' example.com *.example.com
+          {
+            key: "Content-Security-Policy",
+            value:
+              "frame-ancestors 'self' localhost:3000 http://localhost:3000",
+          },
+        ],
+      },
+    ];
+  },
+};
 
 export default config;

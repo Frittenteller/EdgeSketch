@@ -1,6 +1,7 @@
 'use server'
 
 import createClient from "edgedb";
+import { use } from "react";
 
 const client = createClient();
 
@@ -15,38 +16,47 @@ export default async function Page() {
     }
   `);
 
+  async function createPost(formData: FormData) {
+    'use server'
+    const content = formData.get('content') as string;
+    const user_name = formData.get('user_name') as string;
+
+    await client.query(`
+      insert Post {
+        content := <str>$content,
+        from_user := (insert User { name := <str>$user_name })
+      }
+    `, { content, user_name });
+  }
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Posts</h1>
-      <div className="space-y-4">
+      <ul>
         {posts.map((post, index) => (
-          <div key={index} className="p-4 border rounded-lg shadow">
-            <h2 className="text-xl font-semibold">{post.from_user.name}</h2>
-            <p className="mt-2">{post.content}</p>
-            <div className="mt-4">
-              <h3 className="text-lg font-medium">Comments</h3>
-              <ul className="list-disc list-inside">
-                {post.comment.map((comment, idx) => (
-                  <li key={idx} className="mt-1">
-                    {comment.user.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          <li key={index} className="mb-2 p-2 border rounded">
+            <p className="font-semibold">{post.from_user.name}</p>
+            <p>{post.content}</p>
+            <ul className="ml-4 mt-2">
+              {post.comment.map((comment, idx) => (
+                <li key={idx} className="text-sm">
+                  <span className="font-semibold">{comment.user.name}:</span> {comment.content}
+                </li>
+              ))}
+            </ul>
+          </li>
         ))}
-      </div>
-      <form className="mt-8 p-4 border rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Add a Post</h2>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">User Name</label>
-          <input type="text" name="user_name" className="w-full p-2 border rounded" />
+      </ul>
+      <form action={createPost} method="post" className="mt-4">
+        <div className="mb-2">
+          <label htmlFor="user_name" className="block text-sm font-medium text-gray-700">User Name</label>
+          <input type="text" name="user_name" id="user_name" className="mt-1 block w-full p-2 border rounded" required />
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Content</label>
-          <textarea name="content" className="w-full p-2 border rounded"></textarea>
+        <div className="mb-2">
+          <label htmlFor="content" className="block text-sm font-medium text-gray-700">Content</label>
+          <textarea name="content" id="content" className="mt-1 block w-full p-2 border rounded" required></textarea>
         </div>
-        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">Submit</button>
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">Create Post</button>
       </form>
     </div>
   );
