@@ -2,6 +2,7 @@ import createClient from "edgedb";
 import { input } from "edgedb/dist/adapter.node";
 import { z } from "zod";
 import { promises as fs} from 'fs'
+import e from 'edgedb';
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
@@ -129,17 +130,22 @@ export const postRouter = createTRPCRouter({
   }),
 
   addQuery: publicProcedure.input(z.object({slug: z.string(), query: z.string()})).mutation(async (args) =>{
+    console.log(args.input.query)
     await client.query(`
-    WITH MODULE Generator
-    Update Page SET{
-      queries += (
-        INSERT Query{
-          body := 'test'
-        }
-      )
-    } WHERE .slug = 'test';
-
-    `)
-  })
+      WITH MODULE Generator
+      INSERT Query{
+        body := '${args.input.query}'
+      }
+    `).then(async (q) =>{
+      console.log(q)
+      await client.query(`
+      WITH MODULE Generator
+      Update Page SET{
+        queries += ${q}
+      } filter .slug = 'test';
+      `)
+    })
+      
+    })
 
 });
