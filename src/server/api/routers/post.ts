@@ -1,6 +1,7 @@
 import createClient from "edgedb";
 import { input } from "edgedb/dist/adapter.node";
 import { z } from "zod";
+import { promises as fs} from 'fs'
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
@@ -43,13 +44,102 @@ export const postRouter = createTRPCRouter({
     return {res, schema};
   }),
 
-  newPost: publicProcedure.input(z.object({title: z.string(), content: z.string(), userID: z.string()})).query(async (args) =>{
+  newPost: publicProcedure.input(z.object({title: z.string(), content: z.string()})).query(async (args) =>{
+    const users = await client.query(`SELECT User { id };`);
+
+    // Select a random user
+    const randomUser = users[Math.floor(Math.random() * users.length)];
     await client.execute(`
       INSERT Post{
-        title := '${args.input.title}'
-        content := '${args.input.content}'
-        from_user := SELET User Filter .id = '${args.input.userID}'
+        title := '${args.input.title}',
+        content := '${args.input.content}',
+        from_user := (
+          select User
+          filter .id = <uuid>'${randomUser.id}'
+          limit 1
+        )
       };
     `);
+  }),
+
+  newUser: publicProcedure.input(z.object({name: z.string()})).query(async (args) =>{
+    await client.execute(`
+    INSERT User{
+      name := '${args.input.name}'
+    };
+    `)
+  }),
+
+  deleteUser: publicProcedure.input(z.object({name: z.string()})).query(async (args) =>{
+    await client.query(`
+    DELETE User
+    FILTER .name = '${args.input.name}';
+  `)
+  }),
+
+  deletePost: publicProcedure.input(z.object({name: z.string()})).query(async (args) =>{
+    await client.query(`
+    DELETE Post
+    FILTER .title = '${args.input.name}';
+  `);
+  }),
+
+  createFile: publicProcedure.input(z.object({slug: z.string(), content: z.string()})).mutation(async (args) =>{
+    await fs.mkdir(`src/app/page_gen/${args.input.slug}`, { recursive: true }).then(async () => {
+      await fs.writeFile(`src/app/page_gen/${args.input.slug}/page.tsx`, args.input.content)
+    }
+    )
+  }),
+
+  searchPage: publicProcedure.input(z.object({slug: z.string()})).query(async (args) =>{
+    const res =await client.query(`
+    with module Generator
+    select exists (select Page filter .slug = '${args.input.slug}'
+    );
+    `)
+    return res;
+  }),
+
+  createPage: publicProcedure.input(z.object({slug: z.string()})).query(async (args) =>{
+    const res = await client.query(`
+    WITH MODULE Generator
+    INSERT Page{
+      slug := '${args.input.slug}'
+    } unless conflict on .slug else (
+      select Page{
+        id,
+        slug,
+        queries: {}
+    } filter .slug = '${args.input.slug}'
+    )
+    `)
+
+    return res;
+  }),
+
+  getPage: publicProcedure.input(z.object({id: z.string()})).query(async (args) =>{
+    const res = await client.query(`
+    WITH MODULE Generator
+    select Page{
+      id,
+      slug,
+      queries: {}
+    } filter .id = <uuid>${args.input.id}
+    `)
+  }),
+
+  addQuery: publicProcedure.input(z.object({slug: z.string(), query: z.string()})).mutation(async (args) =>{
+    await client.query(`
+    WITH MODULE Generator
+    Update Page SET{
+      queries += (
+        INSERT Query{
+          body := 'test'
+        }
+      )
+    } WHERE .slug = 'test';
+
+    `)
   })
+
 });
