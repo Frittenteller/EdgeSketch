@@ -2,6 +2,48 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "~/trpc/react";
 
+const RenderQuery = ({
+  slug,
+  q,
+  idx,
+}: {
+  slug: string;
+  q: string;
+  idx: number;
+}) => {
+  const page = api.post.getOrCreatePage.useQuery({ slug });
+
+  const updatePage = api.post.updatePage.useMutation();
+  const [input, setInput] = useState(q);
+  if (!page.data) {
+    return <></>;
+  }
+
+  return (
+    <div key={idx} className="border p-4">
+      QUERY #{idx}
+      <textarea
+        value={input}
+        className="h-96 w-full bg-gray-50"
+        onChange={(event) => {
+          setInput(event.target.value);
+
+          updatePage.mutate(
+            {
+              slug,
+              queries:
+                // update query based on index
+                page.data.queries.map((q, i) =>
+                  i === idx ? event.target.value : q,
+                ),
+            },
+            { onSuccess: () => void page.refetch() },
+          );
+        }}
+      ></textarea>
+    </div>
+  );
+};
 export default function Page_Gen({
   params: { slug },
 }: {
@@ -63,26 +105,7 @@ export default function Page_Gen({
         <div>queries</div>
         {page.data.queries.length
           ? page.data.queries.map((q, idx) => (
-              <div key={idx} className="border p-4">
-                QUERY #{idx}
-                <textarea
-                  value={q}
-                  className="h-96 w-full bg-gray-50"
-                  onChange={(event) =>
-                    updatePage.mutate(
-                      {
-                        slug,
-                        queries:
-                          // update query based on index
-                          page.data.queries.map((q, i) =>
-                            i === idx ? event.target.value : q,
-                          ),
-                      },
-                      { onSuccess: () => void page.refetch() },
-                    )
-                  }
-                ></textarea>
-              </div>
+              <RenderQuery idx={idx} key={idx} q={q} slug={slug} />
             ))
           : "no queries"}
         <button
@@ -124,8 +147,12 @@ export default function Page_Gen({
               createFile.mutate(
                 { slug, content },
                 {
-                  onSuccess: () =>
-                    iframeRef.current?.contentWindow?.location.reload(),
+                  onSuccess: () => {
+                    setTimeout(
+                      () => iframeRef.current?.contentWindow?.location.reload(),
+                      200,
+                    );
+                  },
                 },
               );
             }}
@@ -166,17 +193,34 @@ You will generate a react server component.
 You will use TailwindCSS classes for styling.
 You will fix syntax errors in edgeDB queries.
 You will also make sure that insert statements in edgedb queries satisfy all constraints like 'required'.
+Make sure that the code is complete and there are NO placeholders.
 Never expect the user to enter code manually.
+ALWAYS make the function async.
 
 You will return only the following with the [PLACEHOLDERS] filled out.
 
 IMPORTANT: Do not write anything else like 'sure thing, I'll do ...'. You give ONLY file contents back.
 Do not use any hooks like useState as they do not work with server functions.
 IMPORTANT: ONLY return valid typescript, no markdown!
+
+
+Ensure that there are controls for all parameter variants.
+Do not use client-side hooks like useEffect, useState, useContext, etc. They do not work with server functions.
+
 [[[
 'use server'
 
 import createClient from "edgedb";
+
+import { headers } from 'next/headers';
+
+
+// https://stackoverflow.com/questions/75362636/how-can-i-get-the-url-pathname-on-a-server-component-next-js-13
+const domain = headersList.get('host') || "";
+const fullUrl = headersList.get('referer') || "";
+const [,pathname] = fullUrl.match( new RegExp(\`https?:\/\/\${domain}(.*)\`))||[];
+
+console.log(pathname);
 
 [IMPORTS YOU WILL NEED]
 
@@ -194,9 +238,13 @@ export default async function Page() {
     [if needed, query to get data, for example uuid from user with name (do nerver expect the user to know any kind of ids, always go for names or tags), in the style of 'await client.query([query to select data])']
 
     await client.query([query to insert data]);
+    revalidatePath(pathname)
   }
   
-  return [MARKUP that renders nameOfQueryData and UI elements for managing inputs]
+  return [MARKUP that renders nameOfQueryData and UI elements for managing inputs
+    Also markup for any filters that can be passed to queries.
+
+  ]
 
 }
 ]]]
@@ -210,6 +258,9 @@ do not make IDs visible to the end user unless mentioned explicitly
   };
 
   const schema = api.post.getSchema.useQuery();
+  const schemaString_ = (schema.data?.schema[0] as string | undefined) ?? "";
+  console.log(schemaString_);
+  const schemaString__ = schemaString_?.split("module default")[1] ?? "";
 
   const initialMessages: Message[] = [
     initMessage,
@@ -217,7 +268,7 @@ do not make IDs visible to the end user unless mentioned explicitly
   ];
 
   const prompt = `This is the schema
-${schema.data?.schema as unknown as string}
+module default ${schemaString__}
 
 These are the queries
 ${queries.join("\n\n\n")}

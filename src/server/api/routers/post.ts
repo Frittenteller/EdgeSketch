@@ -13,12 +13,12 @@ let post = {
 
 const client = createClient();
 
-const posts = await client.query<any>(`\
- select Post {
-   id,
-   title,
-   content
-};`);
+// const posts = await client.query<any>(`\
+//  select Post {
+//    id,
+//    title,
+//    content
+// };`);
 
 export const postRouter = createTRPCRouter({
   hello: publicProcedure

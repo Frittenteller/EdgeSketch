@@ -14,19 +14,19 @@ export default async function Home() {
 
   const client = createClient();
 
-  const posts = await client.query<Post>(`\
-   select Post {
-     id,
-     title,
-     content
-  };`);
+  //   const posts = await client.query<Post>(`\
+  //    select Post {
+  //      id,
+  //      title,
+  //      content
+  //   };`);
 
-  const query = `\
-  select Post {
-    id,
-    title,
-    content
- };`;
+  //   const query = `\
+  //   select Post {
+  //     id,
+  //     title,
+  //     content
+  //  };`;
 
   const hello = await api.post.hello({ text: query });
   // runGemini();
