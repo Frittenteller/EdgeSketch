@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import e from "~/../dbschema/edgeql-js";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { getQueryError } from "~/app/api/trpc/[trpc]/route";
 
 let post = {
   id: 1,
@@ -146,6 +147,19 @@ export const postRouter = createTRPCRouter({
       );
     }),
 
+    createFileClientSchema: publicProcedure
+    .input(z.object({ slug: z.string(), content: z.string() }))
+    .mutation(async (args) => {
+      console.log("writing file", args);
+      await fs.mkdir(`src/app/page_gen_client_schema/generated/${args.input.slug}`, {
+        recursive: true,
+      });
+      await fs.writeFile(
+        `src/app/page_gen_client_schema/generated/${args.input.slug}/page.tsx`,
+        args.input.content,
+      );
+    }),
+
   searchPage: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async (args) => {
@@ -221,5 +235,10 @@ export const postRouter = createTRPCRouter({
   writeData: publicProcedure.input(z.object({query: z.string()})).mutation(async (args) =>{
     const res = await client.query(args.input.query)
     return res
+  }),
+
+  getQueryError: publicProcedure.query(() =>{
+    const qError = getQueryError()
+    return qError
   })
 });

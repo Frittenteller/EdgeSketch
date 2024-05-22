@@ -15,6 +15,8 @@ const createContext = async (req: NextRequest) => {
   });
 };
 
+let queryError = '';
+
 const handler = (req: NextRequest) =>
   fetchRequestHandler({
     endpoint: "/api/trpc",
@@ -27,8 +29,14 @@ const handler = (req: NextRequest) =>
             console.error(
               `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
             );
+            queryError = `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
           }
         : undefined,
   });
 
-export { handler as GET, handler as POST };
+  const getQueryError = () => {
+    console.log("qError: " + queryError)
+    return queryError
+  };
+
+export { handler as GET, handler as POST, getQueryError };

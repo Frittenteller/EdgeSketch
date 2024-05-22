@@ -64,8 +64,9 @@ export default function Page_Gen({
   const page = api.post.getOrCreatePage.useQuery({ slug });
   const utils = api.useUtils();
   const updatePage = api.post.updatePage.useMutation();
-  const createFile = api.post.createFileClient.useMutation();
+  const createFile = api.post.createFileClientSchema.useMutation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const qError = api.post.getQueryError.useQuery();
   const [errorMessage, setErrorMessage] = useState("");
   const [errorCount, setErrorCount] = useState(0);
   const [features, setFeatures] = useState('NO FEATURES GIVEN')
@@ -80,13 +81,27 @@ export default function Page_Gen({
     role: "user",
   };
   useEffect(() => {
-    setInterval(() => {
+    console.log('qError: ' + qError.data)
+    const intervalID = setInterval(() => {
+      console.log('interval')
+
       const x = iframeRef.current?.contentDocument
         ?.getElementsByTagName("nextjs-portal")?.[0]
         ?.shadowRoot?.getRootNode();
+
       if (!x) {
         return;
       }
+
+      console.log("qError: " + qError.data)
+      if (qError.data != '' && qError.data != undefined) {
+        console.log(1)
+        if (qError.data.includes('page.getData') || qError.data.includes('page.writeData')) {
+          setErrorMessage(qError.data)
+        }
+      }
+      qError.refetch({ cancelRefetch: false });
+
       const nodes = Array.from((x as HTMLElement).children) as HTMLElement[];
       const contentNode = nodes.find(
         (child: HTMLElement) => child.tagName == "DIV",
@@ -105,7 +120,9 @@ export default function Page_Gen({
         }
       }
     }, 1000);
-  }, []);
+
+    return () => { clearInterval(intervalID) }
+  }, [qError]);
 
   if (page.isError) {
     return <div>ERROR {page.error.message}</div>;
@@ -178,7 +195,7 @@ export default function Page_Gen({
         <iframe
           ref={iframeRef}
           className="h-[100vh] w-full"
-          src={`/page_gen_client/generated/${slug}`}
+          src={`/page_gen_client_schema/generated/${slug}`}
         ></iframe>
       </div>
     );
@@ -211,7 +228,6 @@ You will fix syntax errors in edgeDB queries.
 You will also make sure that insert statements in edgedb queries satisfy all constraints like 'required'.
 Make sure that the code is complete and there are NO placeholders.
 Never expect the user to enter code manually.
-ALWAYS make the function async.
 There is NO variabels parameter in 'mutation'.
 
 You will return only the following with the [PLACEHOLDERS] filled out.
