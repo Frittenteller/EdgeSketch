@@ -68,6 +68,7 @@ export default function Page_Gen({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorCount, setErrorCount] = useState(0);
+  const [features, setFeatures] = useState('NO FEATURES GIVEN')
   // INSTRUCTIONS FOR TOM
   // when using the form on the page, I get a missing 'title' property error.
   // I already wrote error detection below
@@ -132,6 +133,7 @@ export default function Page_Gen({
         >
           Add query
         </button>
+        <textarea onChange={(eve) => { setFeatures(eve.target.value); console.log(eve.target.value); }}></textarea>
       </div>
     );
     return (
@@ -189,6 +191,7 @@ import { ChatRequestOptions, CreateMessage } from "ai";
 import { wrap } from "module";
 
 const Chat = ({
+  features,
   queries,
   onFinish,
   errorMessage,
@@ -200,7 +203,8 @@ const Chat = ({
 }) => {
   const initMessage: Message = {
     id: "init",
-    content: `You are an expert UI coder. I will give you an edgeDB schema and and some queries.
+    content: `You are an expert UI coder. I will give you an edgeDB schema and maybe features.
+If there are no features given, interpret the features from the given schema.
 You will generate a react client component.
 You will use TailwindCSS classes for styling.
 You will fix syntax errors in edgeDB queries.
@@ -262,8 +266,8 @@ do not make IDs visible to the end user unless mentioned explicitly
   const prompt = `This is the schema
 module default ${schemaString__}
 
-These are the queries
-${queries.join("\n\n\n")}
+This are the features:
+${features}
 `;
 
   const {
