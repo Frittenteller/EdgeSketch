@@ -2,6 +2,16 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "~/trpc/react";
 
+/*
+-Todo App
+-Possibility to set task as done or undone and to change it
+-Possibility to add new tasks
+-Possibility to delete tasks
+-Filter to only show undone tasks
+-Filter to show all tasks
+-Filter to show done tasks
+*/
+
 const RenderQuery = ({
   slug,
   q,
@@ -58,6 +68,7 @@ export default function Page_Gen({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorCount, setErrorCount] = useState(0);
+  const [features, setFeatures] = useState('NO FEATURES GIVEN')
   // INSTRUCTIONS FOR TOM
   // when using the form on the page, I get a missing 'title' property error.
   // I already wrote error detection below
@@ -122,6 +133,7 @@ export default function Page_Gen({
         >
           Add query
         </button>
+        <textarea onChange={(eve) => { setFeatures(eve.target.value); console.log(eve.target.value); }}></textarea>
       </div>
     );
     return (
@@ -131,6 +143,7 @@ export default function Page_Gen({
           <></>
         ) : (
           <Chat
+            features={features}
             queries={page.data.queries}
             onFinish={(message) => {
               let content = message.content;
@@ -178,24 +191,28 @@ import { ChatRequestOptions, CreateMessage } from "ai";
 import { wrap } from "module";
 
 const Chat = ({
+  features,
   queries,
   onFinish,
   errorMessage,
 }: {
+  features: string,
   queries: string[];
   onFinish: (message: Message) => void;
   errorMessage: string;
 }) => {
   const initMessage: Message = {
     id: "init",
-    content: `You are an expert UI coder. I will give you an edgeDB schema and some queries.
-You will generate a react server component.
+    content: `You are an expert UI coder. I will give you an edgeDB schema and maybe features.
+If there are no features given, interpret the features from the given schema.
+You will generate a react client component.
 You will use TailwindCSS classes for styling.
 You will fix syntax errors in edgeDB queries.
 You will also make sure that insert statements in edgedb queries satisfy all constraints like 'required'.
 Make sure that the code is complete and there are NO placeholders.
 Never expect the user to enter code manually.
 ALWAYS make the function async.
+There is NO variabels parameter in 'mutation'.
 
 You will return only the following with the [PLACEHOLDERS] filled out.
 
@@ -205,7 +222,6 @@ IMPORTANT: ONLY return valid typescript, no markdown!
 
 
 Ensure that there are controls for all parameter variants.
-Do not use client-side hooks like useEffect, useState, useContext, etc. They do not work with server functions.
 
 [[[
 'use client'
@@ -214,13 +230,14 @@ import { api } from "~/trpc/react";
 
 [IMPORTS YOU WILL NEED]
 
-const [nameOfFirstQueryData] = api.post.getData.useQuery({query: '[first given query]'}) 
-const [nameOfSecondQueryData] = api.post.writeData.useMutation({query: '[second given query]'}) //use if you need to create, update or delete data. [nameOfSecondaryQuery].mutate({query: [FULL QUERY]}) to mutate
 
 
 export default async function Page() {
   [STATE MANAGEMENT]
-  
+
+  const [nameOfFirstQueryData] = api.post.getData.useQuery({query: '[first given query]'}) 
+  const [nameOfSecondQueryData] = api.post.writeData.useMutation({query: '[second given query]'}) //use if you need to create, update or delete data. [nameOfSecondaryQuery].mutate({query: [FULL QUERY]}) to mutate
+
   return [MARKUP that renders nameOfQueryData and UI elements for managing inputs
     Also markup for any filters that can be passed to queries.
 
@@ -232,7 +249,6 @@ export default async function Page() {
 
 
 do not make IDs visible to the end user unless mentioned explicitly
-
 `,
     role: "user",
   };
@@ -250,9 +266,8 @@ do not make IDs visible to the end user unless mentioned explicitly
   const prompt = `This is the schema
 module default ${schemaString__}
 
-These are the queries
-${queries.join("\n\n\n")}
-
+This are the features:
+${features}
 `;
 
   const {
