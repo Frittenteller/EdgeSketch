@@ -134,7 +134,7 @@ export const postRouter = createTRPCRouter({
       );
     }),
 
-    createFileClient: publicProcedure
+  createFileClient: publicProcedure
     .input(z.object({ slug: z.string(), content: z.string() }))
     .mutation(async (args) => {
       console.log("writing file", args);
@@ -147,13 +147,16 @@ export const postRouter = createTRPCRouter({
       );
     }),
 
-    createFileClientSchema: publicProcedure
+  createFileClientSchema: publicProcedure
     .input(z.object({ slug: z.string(), content: z.string() }))
     .mutation(async (args) => {
       console.log("writing file", args);
-      await fs.mkdir(`src/app/page_gen_client_schema/generated/${args.input.slug}`, {
-        recursive: true,
-      });
+      await fs.mkdir(
+        `src/app/page_gen_client_schema/generated/${args.input.slug}`,
+        {
+          recursive: true,
+        },
+      );
       await fs.writeFile(
         `src/app/page_gen_client_schema/generated/${args.input.slug}/page.tsx`,
         args.input.content,
@@ -227,18 +230,31 @@ export const postRouter = createTRPCRouter({
         });
     }),
 
-  getData: publicProcedure.input(z.object({query: z.string()})).query(async (args) =>{
-    const res = await client.query(args.input.query)
-    return res
-  }),
+  getData: publicProcedure
+    .input(
+      z.object({
+        query: z.string(),
+        variables: z.object({}).passthrough().optional(),
+      }),
+    )
+    .query(async (args) => {
+      const res = await client.query(args.input.query, args.input.variables);
+      return res;
+    }),
 
-  writeData: publicProcedure.input(z.object({query: z.string()})).mutation(async (args) =>{
-    const res = await client.query(args.input.query)
-    return res
+  getQueryError: publicProcedure.query(() => {
+    const qError = getQueryError();
+    return qError;
   }),
-
-  getQueryError: publicProcedure.query(() =>{
-    const qError = getQueryError()
-    return qError
-  })
+  writeData: publicProcedure
+    .input(
+      z.object({
+        query: z.string(),
+        variables: z.object({}).passthrough().optional(),
+      }),
+    )
+    .mutation(async (args) => {
+      const res = await client.query(args.input.query, args.input.variables);
+      return res;
+    }),
 });

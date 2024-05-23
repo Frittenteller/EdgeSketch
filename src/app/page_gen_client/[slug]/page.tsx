@@ -51,6 +51,20 @@ const RenderQuery = ({
           );
         }}
       ></textarea>
+      <button
+        onClick={() =>
+          updatePage.mutate(
+            {
+              slug,
+              queries: page.data.queries.filter((q, i) => i !== idx),
+            },
+
+            { onSuccess: () => void page.refetch() },
+          )
+        }
+      >
+        remove query
+      </button>
     </div>
   );
 };
@@ -62,24 +76,23 @@ export default function Page_Gen({
   const res = api.post.createPage.useQuery({ slug });
   console.log(res.data);
   const page = api.post.getOrCreatePage.useQuery({ slug });
-  const utils = api.useUtils();
   const updatePage = api.post.updatePage.useMutation();
   const createFile = api.post.createFileClient.useMutation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [errorCount, setErrorCount] = useState(0);
   // INSTRUCTIONS FOR TOM
   // when using the form on the page, I get a missing 'title' property error.
   // I already wrote error detection below
   // use the error that was detected and feed it back to the AI so that it makes adjustments
   // ideally we factor out individual render components and merge the chat component logic into the Page_Gen component in order to prevent parent-child communication hassle
-  const errorMessageInit: Message = {
-    id: "error",
-    content: "",
-    role: "user",
-  };
   useEffect(() => {
     setInterval(() => {
+      console.log("checking error");
+      const err_from_trpc = iframeRef.current?.contentWindow.err_feedback;
+      console.log(err_from_trpc, iframeRef.current?.contentWindow);
+      if (err_from_trpc) {
+        return setErrorMessage(err_from_trpc.toString());
+      }
       const x = iframeRef.current?.contentDocument
         ?.getElementsByTagName("nextjs-portal")?.[0]
         ?.shadowRoot?.getRootNode();
@@ -115,8 +128,8 @@ export default function Page_Gen({
         <div>queries</div>
         {page.data.queries.length
           ? page.data.queries.map((q, idx) => (
-            <RenderQuery idx={idx} key={idx} q={q} slug={slug} />
-          ))
+              <RenderQuery idx={idx} key={idx} q={q} slug={slug} />
+            ))
           : "no queries"}
         <button
           className="block rounded-md bg-gray-50 p-3"
@@ -193,7 +206,7 @@ const Chat = ({
   onFinish,
   errorMessage,
 }: {
-  features: string,
+  features: string;
   queries: string[];
   onFinish: (message: Message) => void;
   errorMessage: string;
@@ -207,8 +220,9 @@ You will fix syntax errors in edgeDB queries.
 You will also make sure that insert statements in edgedb queries satisfy all constraints like 'required'.
 Make sure that the code is complete and there are NO placeholders.
 Never expect the user to enter code manually.
-ALWAYS make the function async.
-There is NO variabels parameter in 'mutation'.
+NEVER use async functions.
+Style the components nicely but in a basic way. The default HTML styles are not applied, so buttons might be invisible without styling.
+Do NOT hallucinate properties that are not in the schema!
 
 You will return only the following with the [PLACEHOLDERS] filled out.
 
@@ -219,6 +233,7 @@ IMPORTANT: ONLY return valid typescript, no markdown!
 
 Ensure that there are controls for all parameter variants.
 
+
 [[[
 'use client'
 
@@ -227,17 +242,37 @@ import { api } from "~/trpc/react";
 [IMPORTS YOU WILL NEED]
 
 
-
-export default async function Page() {
+export default function Page() {
   [STATE MANAGEMENT]
 
-  const [nameOfFirstQueryData] = api.post.getData.useQuery({query: '[first given query]'}) 
-  const [nameOfSecondQueryData] = api.post.writeData.useMutation({query: '[second given query]'}) //use if you need to create, update or delete data. [nameOfSecondaryQuery].mutate({query: [FULL QUERY]}) to mutate
+  [repeat the below as many times as needed for queries]
+  const [nameOfQueryData] = api.post.getData.useQuery({query: '[read query]', variables: [query variables from state management]}, {onError: err => {
+    console.log('error in trpc', window)
+    window.err_feedback = err
+  }})
+
+
+  [repeat the below as many times as needed for mutations]
+  //use if you need to create, update or delete data. [nameOfSecondaryQuery].mutate({query: [FULL QUERY]}) to mutate
+  const [nameOfMutationData] = api.post.writeData.useMutation()
+
+  
+
+
+
+
 
   return [MARKUP that renders nameOfQueryData and UI elements for managing inputs
     Also markup for any filters that can be passed to queries.
 
-  ]
+    make sure to call useMutation here and add an onError handler as the second argumen like so
+    
+mutation.mutate({query: [write query here], variables: [query variables  from  state management]}, {onError: err => {
+    console.log('error in trpc', window)
+    window.err_feedback = err
+
+  }})
+    
 
 }
 ]]]
