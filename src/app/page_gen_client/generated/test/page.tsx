@@ -1,134 +1,83 @@
 'use client'
 
 import { api } from "~/trpc/react";
-import { useState } from 'react';
+import { useState } from "react";
 
-export default async function Page() {
-  const [filter, setFilter] = useState<'all' | 'done' | 'undone'>('all');
-  const [newTaskName, setNewTaskName] = useState('');
+export default function Page() {
+  const [filter, setFilter] = useState<string>('all');
+  const utils = api.useUtils();
 
-  const { data: todos, refetch } = api.post.getData.useQuery({
-    query: `
-      SELECT Todo {
-        id,
-        name,
-        completed
-      } FILTER .completed = <bool>$filter
-    `,
-    variables: {
-      filter: filter === 'all' ? undefined : filter === 'done'
-    }
-  });
+  const todoData = api.post.getData.useQuery(
+    { query: `select Todo { name, id, completed } filter true if <str>$filter = 'all' else .completed if <str>$filter = 'completed' else not .completed`, variables: { filter } },
+    { throwOnError: true }
+  );
 
-  const createTodo = api.post.writeData.useMutation({
-    query: `
-      INSERT Todo {
-        name := <str>$name,
-        completed := false
+  const createTodo = api.post.writeData.useMutation();
+  const updateTodo = api.post.writeData.useMutation();
+  const deleteTodo = api.post.writeData.useMutation();
+
+  const handleCreate = (name: string) => {
+    createTodo.mutate(
+      { query: `insert Todo { name := <str>$name, completed := false }`, variables: { name } },
+      {
+        onSuccess: () => void utils.invalidate(),
+        onError: err => {
+          console.log("error in trpc", window, err, 'throwing');
+          window.err_feedback = err;
+          throw err;
+        }
       }
-    `
-  });
-
-  const updateTodo = api.post.writeData.useMutation({
-    query: `
-      UPDATE Todo
-      FILTER .id = <uuid>$id
-      SET {
-        completed := <bool>$completed
-      }
-    `
-  });
-
-  const deleteTodo = api.post.writeData.useMutation({
-    query: `
-      DELETE Todo
-      FILTER .id = <uuid>$id
-    `
-  });
-
-  const handleCreateTodo = async () => {
-    await createTodo.mutate({
-      variables: {
-        name: newTaskName
-      }
-    });
-    setNewTaskName('');
-    refetch();
+    );
   };
 
-  const handleUpdateTodo = async (id: string, completed: boolean) => {
-    await updateTodo.mutate({
-      variables: {
-        id,
-        completed
+  const handleUpdate = (id: string, completed: boolean) => {
+    updateTodo.mutate(
+      { query: `update Todo filter .id = <uuid>$id set { completed := <bool>$completed }`, variables: { id, completed } },
+      {
+        onSuccess: () => void utils.invalidate(),
+        onError: err => {
+          console.log("error in trpc", window, err, 'throwing');
+          window.err_feedback = err;
+          throw err;
+        }
       }
-    });
-    refetch();
+    );
   };
 
-  const handleDeleteTodo = async (id: string) => {
-    await deleteTodo.mutate({
-      variables: {
-        id
+  const handleDelete = (id: string) => {
+    deleteTodo.mutate(
+      { query: `delete Todo filter .id = <uuid>$id`, variables: { id } },
+      {
+        onSuccess: () => void utils.invalidate(),
+        onError: err => {
+          console.log("error in trpc", window, err, 'throwing');
+          window.err_feedback = err;
+          throw err;
+        }
       }
-    });
-    refetch();
+    );
   };
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Todo App</h1>
       <div className="mb-4">
-        <input
-          type="text"
-          value={newTaskName}
-          onChange={(e) => setNewTaskName(e.target.value)}
-          className="border p-2 mr-2"
-          placeholder="New task name"
-        />
-        <button
-          onClick={handleCreateTodo}
-          className="bg-blue-500 text-white p-2"
-        >
-          Add Task
-        </button>
+        <label className="mr-2">Filter:</label>
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="border p-2">
+          <option value="all">All</option>
+          <option value="completed">Completed</option>
+          <option value="open">Open</option>
+        </select>
       </div>
       <div className="mb-4">
-        <button
-          onClick={() => setFilter('all')}
-          className={`p-2 mr-2 ${filter === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setFilter('undone')}
-          className={`p-2 mr-2 ${filter === 'undone' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-        >
-          Undone
-        </button>
-        <button
-          onClick={() => setFilter('done')}
-          className={`p-2 ${filter === 'done' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-        >
-          Done
-        </button>
+        <input type="text" id="new-todo" placeholder="New Todo" className="border p-2 mr-2" />
+        <button onClick={() => handleCreate((document.getElementById('new-todo') as HTMLInputElement).value)} className="bg-blue-500 text-white p-2">Add Todo</button>
       </div>
       <ul>
-        {todos?.map((todo) => (
-          <li key={todo.id} className="mb-2 flex items-center">
-            <input
-              type="checkbox"
-              checked={todo.completed}
-              onChange={() => handleUpdateTodo(todo.id, !todo.completed)}
-              className="mr-2"
-            />
-            <span className={`flex-1 ${todo.completed ? 'line-through' : ''}`}>{todo.name}</span>
-            <button
-              onClick={() => handleDeleteTodo(todo.id)}
-              className="bg-red-500 text-white p-2"
-            >
-              Delete
-            </button>
+        {todoData.data?.map((todo: { id: string, name: string, completed: boolean }) => (
+          <li key={todo.id} className="mb-2">
+            <input type="checkbox" checked={todo.completed} onChange={() => handleUpdate(todo.id, !todo.completed)} className="mr-2" />
+            {todo.name}
+            <button onClick={() => handleDelete(todo.id)} className="bg-red-500 text-white p-2 ml-2">Delete</button>
           </li>
         ))}
       </ul>

@@ -31,7 +31,7 @@ const RenderQuery = ({
 
   return (
     <div key={idx} className="border p-4">
-      QUERY #{idx}
+      <h2 className="font-bold">QUERY #{idx}</h2>
       <textarea
         value={input}
         className="h-96 w-full bg-gray-50"
@@ -51,23 +51,27 @@ const RenderQuery = ({
           );
         }}
       ></textarea>
-      <button
-        onClick={() =>
-          updatePage.mutate(
-            {
-              slug,
-              queries: page.data.queries.filter((q, i) => i !== idx),
-            },
+      <div className="flex justify-end">
+        <button className="p-2 bg-slate-800 text-white rounded-md justify-end"
+          onClick={() =>
+            updatePage.mutate(
+              {
+                slug,
+                queries: page.data.queries.filter((q, i) => i !== idx),
+              },
 
-            { onSuccess: () => void page.refetch() },
-          )
-        }
-      >
-        remove query
-      </button>
+              { onSuccess: () => void page.refetch() },
+            )
+          }
+        >
+          Remove query
+        </button>
+      </div>
     </div>
   );
 };
+
+
 export default function Page_Gen({
   params: { slug },
 }: {
@@ -124,15 +128,15 @@ export default function Page_Gen({
   }
   if (page.isSuccess) {
     const queryEditor = (
-      <div>
+      <div className="m-4">
         <div>queries</div>
         {page.data.queries.length
           ? page.data.queries.map((q, idx) => (
-              <RenderQuery idx={idx} key={idx} q={q} slug={slug} />
-            ))
+            <RenderQuery idx={idx} key={idx} q={q} slug={slug} />
+          ))
           : "no queries"}
         <button
-          className="block rounded-md bg-gray-50 p-3"
+          className="block p-2 mt-2 w-full bg-slate-800 text-white rounded-md"
           onClick={() =>
             updatePage.mutate(
               {
@@ -149,7 +153,7 @@ export default function Page_Gen({
     );
     const features = "";
     return (
-      <div>
+      <div className="m-4">
         {queryEditor}
         {page.data.queries.length == 0 ? (
           <></>
@@ -185,11 +189,18 @@ export default function Page_Gen({
           ></Chat>
         )}
 
-        <div>Finished page</div>
+        <div className="my-2 font-bold">Finished page</div>
+        <div className="flex justify-around my-2">
+          <button className="p-2 bg-slate-800 text-white rounded-md" onClick={() => iframeRef.current?.contentWindow?.location.reload()}>Reload iframe</button>
+
+          <a target="_blank" href={`/page_gen_client/generated/${slug}`}>
+            <button className="p-2 bg-slate-800 text-white rounded-md">Open page in new tab</button>
+          </a>
+        </div>
 
         <iframe
           ref={iframeRef}
-          className="h-[100vh] w-full"
+          className="h-[100vh] w-full border"
           src={`/page_gen_client/generated/${slug}`}
         ></iframe>
       </div>
@@ -201,6 +212,7 @@ export default function Page_Gen({
 import { type Message, useChat } from "ai/react";
 import { ChatRequestOptions, CreateMessage } from "ai";
 import { wrap } from "module";
+import { redirect } from "next/navigation";
 
 const Chat = ({
   queries,
@@ -346,7 +358,7 @@ ${queries.join("\n\n\n")}
         placeholder="Say something..."
         onChange={handleInputChange}
       />
-      <button className="rounded border shadow-md" type="submit">
+      <button className="p-2 bg-slate-800 text-white rounded-md" type="submit">
         Submit
       </button>
     </form>
@@ -356,7 +368,7 @@ ${queries.join("\n\n\n")}
       {messages.map((message, idx) => {
         const m = message;
         return (
-          <div key={message.id} className="bg-blue-100">
+          <div key={message.id} className="bg-blue-100 overflow-scroll h-1/4 max-h-96 border border-black my-0.5">
             <div key={m.id} className="whitespace-pre-wrap">
               {m.role === "user" ? "User: " : "AI: "}
               {idx >= messages.length - 1 ? m.content : m.content.length}
@@ -367,10 +379,10 @@ ${queries.join("\n\n\n")}
       {/* {chatField} */}
       {!isLoading && (
         <>
-          <div className="whitespace-pre-wrap">{prompt}</div>
+          <div className="whitespace-pre-wrap border border-black my-2 ">{prompt}</div>
           <button
             onClick={() => append({ content: prompt, role: "user" })}
-            className="block rounded-md bg-gray-50 p-3"
+            className="p-2 bg-slate-800 text-white rounded-md"
           >
             RUN
           </button>
