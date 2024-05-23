@@ -147,6 +147,7 @@ export default function Page_Gen({
         </button>
       </div>
     );
+    const features = "";
     return (
       <div>
         {queryEditor}
@@ -224,6 +225,8 @@ NEVER use async functions.
 Style the components nicely but in a basic way. The default HTML styles are not applied, so buttons might be invisible without styling.
 Do NOT hallucinate properties that are not in the schema!
 
+Do NOT show IDs or expect users to insert them anywhere. Attach features with elements that require an ID to the component that holds the data.
+
 You will return only the following with the [PLACEHOLDERS] filled out.
 
 IMPORTANT: Do not write anything else like 'sure thing, I'll do ...'. You give ONLY file contents back.
@@ -244,17 +247,16 @@ import { api } from "~/trpc/react";
 
 export default function Page() {
   [STATE MANAGEMENT]
+  const utils = api.useUtils()
 
   [repeat the below as many times as needed for queries]
-  const [nameOfQueryData] = api.post.getData.useQuery({query: '[read query]', variables: [query variables from state management]}, {onError: err => {
-    console.log('error in trpc', window)
-    window.err_feedback = err
-  }})
+  [make sure that throwOnError is true - this is ONLY supported by queries, onError is not supported]
+  const nameOfQueryData = api.post.getData.useQuery({query: '[read query]', variables: [query variables from state management]}, {throwOnError: true})
 
 
   [repeat the below as many times as needed for mutations]
   //use if you need to create, update or delete data. [nameOfSecondaryQuery].mutate({query: [FULL QUERY]}) to mutate
-  const [nameOfMutationData] = api.post.writeData.useMutation()
+  const nameOfMutationData = api.post.writeData.useMutation()
 
   
 
@@ -265,11 +267,17 @@ export default function Page() {
   return [MARKUP that renders nameOfQueryData and UI elements for managing inputs
     Also markup for any filters that can be passed to queries.
 
-    make sure to call useMutation here and add an onError handler as the second argumen like so
-    
-mutation.mutate({query: [write query here], variables: [query variables  from  state management]}, {onError: err => {
-    console.log('error in trpc', window)
-    window.err_feedback = err
+    A mutation call looks like this:
+mutation.mutate({query: [write query here], variables: [query variables  from  state management]}
+  // make sure taht queries are refetched after each mutation
+    , {onSuccess: () => void utils.invalidate()
+    // make sure to call useMutation here and add an onError handler as the second argumen like so
+    // it is ESSENTIAL that the error is fed to window.err_feedback.
+    , onError: err => {
+          console.log("error in trpc", window, err, 'throwing');
+          window.err_feedback = err
+          throw err
+
 
   }})
     
