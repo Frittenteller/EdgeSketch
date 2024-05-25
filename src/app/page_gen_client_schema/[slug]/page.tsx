@@ -66,7 +66,6 @@ export default function Page_Gen({
   const updatePage = api.post.updatePage.useMutation();
   const createFile = api.post.createFileClientSchema.useMutation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const qError = api.post.getQueryError.useQuery();
   const [errorMessage, setErrorMessage] = useState("");
   const [errorCount, setErrorCount] = useState(0);
   const [features, setFeatures] = useState('NO FEATURES GIVEN')
@@ -81,7 +80,6 @@ export default function Page_Gen({
     role: "user",
   };
   useEffect(() => {
-    console.log('qError: ' + qError.data)
     const intervalID = setInterval(() => {
       console.log('interval')
 
@@ -92,15 +90,6 @@ export default function Page_Gen({
       if (!x) {
         return;
       }
-
-      console.log("qError: " + qError.data)
-      if (qError.data != '' && qError.data != undefined) {
-        console.log(1)
-        if (qError.data.includes('page.getData') || qError.data.includes('page.writeData')) {
-          setErrorMessage(qError.data)
-        }
-      }
-      qError.refetch({ cancelRefetch: false });
 
       const nodes = Array.from((x as HTMLElement).children) as HTMLElement[];
       const contentNode = nodes.find(
@@ -122,7 +111,7 @@ export default function Page_Gen({
     }, 1000);
 
     return () => { clearInterval(intervalID) }
-  }, [qError]);
+  }, []);
 
   if (page.isError) {
     return <div>ERROR {page.error.message}</div>;
