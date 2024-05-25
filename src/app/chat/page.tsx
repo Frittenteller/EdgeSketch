@@ -6,7 +6,8 @@ import { api } from "~/trpc/react";
 import { html } from "htm/react";
 import { isValidElement, useEffect, useState } from "react";
 import { isValid } from "zod";
-import { ErrorBoundary, ErrorComponent } from "next/dist/client/components/error-boundary";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { ErrorComponent } from "next/dist/client/components/error-boundary";
 
 export default function Chat() {
     const initMessage: Message = {
