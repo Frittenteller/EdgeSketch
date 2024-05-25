@@ -75,8 +75,8 @@ ${JSON.stringify(hello.data?.res, null, 2)}
         setInput(prompt);
     }, [prompt]);
     const data = hello.data?.res ?? [];
-    window.html = html;
-    window.data = data;
+    //window.html = html;
+    //window.data = data;
 
     return (
         <div className="stretch flex w-full flex-col py-12 px-10">
