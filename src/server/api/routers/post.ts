@@ -73,6 +73,8 @@ export const postRouter = createTRPCRouter({
         }))
         .run(client);
     }),
+
+
   newPost: publicProcedure
     .input(z.object({ title: z.string(), content: z.string() }))
     .query(async (args) => {
@@ -209,25 +211,22 @@ export const postRouter = createTRPCRouter({
   addQuery: publicProcedure
     .input(z.object({ slug: z.string(), query: z.string() }))
     .mutation(async (args) => {
-      console.log(args.input.query);
-      await client
-        .query(
-          `
-      WITH MODULE Generator
-      INSERT Query{
-        body := '${args.input.query}'
-      }
-    `,
-        )
-        .then(async (q) => {
-          console.log(q);
-          await client.query(`
-      WITH MODULE Generator
-      Update Page SET{
-        queries += ${q}
-      } filter .slug = 'test';
-      `);
-        });
+      const query = args.input.query.replaceAll("'", '"')
+      await client.query(`
+        UPDATE Generator::Page filter .slug = '${args.input.slug}' set {
+          queries += '${query}'
+        }
+      `)
+    }),
+
+    removeQuery: publicProcedure
+    .input(z.object({ slug: z.string(), query: z.string() }))
+    .mutation(async (args) => {
+      await client.query(`
+        UPDATE Generator::Page filter .slug = '${args.input.slug}' set {
+          queries -= '${args.input.query}'
+        }
+      `)
     }),
 
   getData: publicProcedure

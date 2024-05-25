@@ -3,13 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "~/trpc/react";
 
 /*
--Todo App
--Possibility to set task as done or undone and to change it
--Possibility to add new tasks
--Possibility to delete tasks
--Filter to only show undone tasks
--Filter to show all tasks
--Filter to show done tasks
+select Todo {
+  name,id, completed
+} filter true if <str>$filter = 'all' else .completed if <str>$filter = 'completed' else not .completed
+# controls should come from here, make sure the useState is referring to these possible values. Another possible value is 'open'
 */
 
 const RenderQuery = ({
@@ -24,6 +21,7 @@ const RenderQuery = ({
   const page = api.post.getOrCreatePage.useQuery({ slug });
 
   const updatePage = api.post.updatePage.useMutation();
+  const removeQuery = api.post.removeQuery.useMutation();
   const [input, setInput] = useState(q);
   if (!page.data) {
     return <></>;
@@ -82,8 +80,11 @@ export default function Page_Gen({
   const page = api.post.getOrCreatePage.useQuery({ slug });
   const updatePage = api.post.updatePage.useMutation();
   const createFile = api.post.createFileClient.useMutation();
+  const addQuery = api.post.addQuery.useMutation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [newQueryIsOpen, setNewQueryIsOpen] = useState(false);
+  const [newQuery, setNewQuery] = useState('');
   // INSTRUCTIONS FOR TOM
   // when using the form on the page, I get a missing 'title' property error.
   // I already wrote error detection below
@@ -137,18 +138,27 @@ export default function Page_Gen({
           : "no queries"}
         <button
           className="block p-2 mt-2 w-full bg-slate-800 text-white rounded-md"
-          onClick={() =>
-            updatePage.mutate(
-              {
-                slug,
-                queries: [...page.data.queries, "select Object"],
-              },
-              { onSuccess: () => void page.refetch() },
-            )
-          }
+          onClick={() => setNewQueryIsOpen(!newQueryIsOpen)}
         >
           Add query
         </button>
+        {newQueryIsOpen && (
+          <div className="flex flex-col">
+            <textarea className="border rounded h-96 bg-gray-50 my-2" name="newQuery" onChange={(eve) => { setNewQuery(eve.target.value) }}></textarea>
+            <button className="bg-slate-800 text-white rounded-md p-2 self-start" onClick={() => {
+              console.log("Queries: " + [...page.data.queries, newQuery]);
+              addQuery.mutate(
+                {
+                  slug,
+                  query: newQuery, //1680 1050
+                },
+                { onSuccess: () => void page.refetch() },
+
+              )
+            }
+            }>Submit</button>
+          </div>
+        )}
       </div>
     );
     const features = "";
