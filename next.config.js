@@ -21,16 +21,18 @@ const config = {
             value:
               "frame-ancestors 'self' localhost:3000 http://localhost:3000",
           },
-
         ],
-        eslint: {
-          // Warning: This allows production builds to successfully complete even if
-          // your project has ESLint errors.
-          ignoreDuringBuilds: true,
-        },
       },
     ];
   },
 };
 
 export default config;
+
+module.exports = {
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+}
