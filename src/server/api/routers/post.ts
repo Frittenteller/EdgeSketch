@@ -5,7 +5,6 @@ import { promises as fs } from "fs";
 import e from "~/../dbschema/edgeql-js";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { getQueryError } from "~/app/api/trpc/[trpc]/route";
 
 let post = {
   id: 1,
@@ -241,10 +240,6 @@ export const postRouter = createTRPCRouter({
       return res;
     }),
 
-  getQueryError: publicProcedure.query(() => {
-    const qError = getQueryError();
-    return qError;
-  }),
   writeData: publicProcedure
     .input(
       z.object({
